@@ -6,17 +6,20 @@ import { BiSend } from "react-icons/bi";
 import { HiInbox } from "react-icons/hi";
 import { MdExpandMore } from "react-icons/md";
 import { RiPencilLine } from "react-icons/ri";
-import { useDispatch } from "react-redux";
-import { setFirst } from "../redux/appSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { setFirst, setFolder } from "../redux/appSlice";
 
 const SiderbarItems = [
   {
     icon: <HiInbox size={"20px"} />,
     text: "Inbox",
+    folder: "inbox",
   },
   {
     icon: <IoMdStarOutline size={"20px"} />,
     text: "Starred",
+    folder: "starred",
   },
   {
     icon: <IoMdTime size={"20px"} />,
@@ -25,10 +28,12 @@ const SiderbarItems = [
   {
     icon: <BiSend size={"20px"} />,
     text: "Sent",
+    folder: "sent",
   },
   {
     icon: <LuStickyNote size={"20px"} />,
     text: "Drafts",
+    folder: "drafts",
   },
   {
     icon: <MdExpandMore size={"20px"} />,
@@ -38,6 +43,14 @@ const SiderbarItems = [
 
 const Sidebar = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const folder = useSelector(store => store.appSlice.folder);
+
+  const openFolder = (item) => {
+    if (!item.folder) return;
+    dispatch(setFolder(item.folder));
+    navigate("/");
+  };
   
   return (
     <div className="w-[15%] ">
@@ -52,7 +65,7 @@ const Sidebar = () => {
       <div className="text-gray-500">
         {SiderbarItems.map((item, index) => {
           return (
-            <div key={index} className="flex items-center gap-4 pl-6 py-1 rounded-r-full cursor-pointer my-2 hover:bg-gray-200">
+            <div key={index} onClick={() => openFolder(item)} className={`flex items-center gap-4 pl-6 py-1 rounded-r-full cursor-pointer my-2 ${item.folder && folder === item.folder ? "bg-[#D3E3FD] font-medium text-gray-800" : "hover:bg-gray-200"}`}>
               {item.icon}
               <p>{item.text}</p>
             </div>

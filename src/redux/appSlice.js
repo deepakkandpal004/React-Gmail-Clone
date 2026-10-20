@@ -7,7 +7,9 @@ const appSlice = createSlice({
         emails:[],
         selectedEmail:null,
         searchText:"",
-        user:null
+        user:null,
+        composePrefill:null,
+        folder:"inbox"
     },
     reducers:{
         setFirst:(state, action) => {
@@ -24,10 +26,16 @@ const appSlice = createSlice({
         },
         setUser: (state, action) => {
             state.user = action.payload;
+        },
+        setComposePrefill:(state, action) => {
+            state.composePrefill = action.payload;
+        },
+        setFolder:(state, action) => {
+            state.folder = action.payload;
         }
 
     }
 });
 
-export const {setFirst, setEmails, setSelectedEmail, setSearchText, setUser} = appSlice.actions;
+export const {setFirst, setEmails, setSelectedEmail, setSearchText, setUser, setComposePrefill, setFolder} = appSlice.actions;
 export default appSlice.reducer;

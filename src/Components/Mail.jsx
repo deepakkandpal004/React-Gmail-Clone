@@ -1,5 +1,5 @@
 import { deleteDoc, doc } from "firebase/firestore";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BiArchiveIn } from "react-icons/bi";
 import { IoMdMore, IoMdArrowBack } from "react-icons/io";
 import { motion } from "framer-motion";
@@ -12,14 +12,65 @@ import {
 } from "react-icons/md";
 import { PiLineVerticalThin } from "react-icons/pi";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { db } from "../firebase";
+import { summarizeEmail, suggestReplies } from "../ai";
+import { setComposePrefill, setFirst } from "../redux/appSlice";
 
 const Mail = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { selectedEmail } = useSelector((store) => store.appSlice);
     const params = useParams();
+
+    const [summary, setSummary] = useState("");
+    const [summaryLoading, setSummaryLoading] = useState(false);
+    const [summaryError, setSummaryError] = useState("");
+    const [replies, setReplies] = useState([]);
+    const [repliesLoading, setRepliesLoading] = useState(false);
+    const [repliesError, setRepliesError] = useState("");
+
+    useEffect(() => {
+        setSummary("");
+        setSummaryError("");
+        setReplies([]);
+        setRepliesError("");
+    }, [params.id]);
+
+    const handleSummarize = async () => {
+        setSummaryLoading(true);
+        setSummaryError("");
+        try {
+            setSummary(await summarizeEmail(selectedEmail));
+        } catch (error) {
+            setSummaryError("AI unavailable — is Ollama running?");
+        }
+        setSummaryLoading(false);
+    };
+
+    const handleSuggestReplies = async () => {
+        setRepliesLoading(true);
+        setRepliesError("");
+        try {
+            setReplies(await suggestReplies(selectedEmail));
+        } catch (error) {
+            setRepliesError("AI unavailable — is Ollama running?");
+        }
+        setRepliesLoading(false);
+    };
+
+    const handleReplyClick = (reply) => {
+        const subject = selectedEmail?.subject || "";
+        dispatch(
+            setComposePrefill({
+                to: selectedEmail?.to || "",
+                subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
+                message: reply,
+            })
+        );
+        dispatch(setFirst(true));
+    };
 
     const deleteEmailById = async (id) => {
         try {
@@ -102,6 +153,49 @@ const Mail = () => {
                 </div>
                 <div className="my-10 ">
                     <p>{selectedEmail?.message}</p>
+                </div>
+                <div className="border-t border-gray-200 pt-4 pb-10">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleSummarize}
+                            disabled={summaryLoading}
+                            className="border border-gray-300 rounded-full px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                        >
+                            {summaryLoading ? "Summarizing…" : "Summarize"}
+                        </button>
+                        <button
+                            onClick={handleSuggestReplies}
+                            disabled={repliesLoading}
+                            className="border border-gray-300 rounded-full px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                        >
+                            {repliesLoading ? "Thinking…" : "Smart replies"}
+                        </button>
+                    </div>
+                    {summaryError && (
+                        <p className="text-sm text-red-500 mt-3">{summaryError}</p>
+                    )}
+                    {summary && (
+                        <div className="bg-[#F2F6Fc] rounded-lg p-4 mt-4">
+                            <p className="text-xs font-medium text-gray-500 mb-1">AI summary</p>
+                            <p className="text-sm text-gray-800">{summary}</p>
+                        </div>
+                    )}
+                    {repliesError && (
+                        <p className="text-sm text-red-500 mt-3">{repliesError}</p>
+                    )}
+                    {replies.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                            {replies.map((reply, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleReplyClick(reply)}
+                                    className="border border-gray-300 rounded-full px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                    {reply}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </motion.div>
